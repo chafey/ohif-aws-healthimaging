@@ -67,6 +67,7 @@ const proxy = createServer(async (req, res) => {
                     if (err) {
                         console.log(err);
                     } else {
+                        awsCredentials = AWS.config.credentials;
                         console.log('TOKEN SUCCESSFULLY UPDATED');
                     }
                 });
