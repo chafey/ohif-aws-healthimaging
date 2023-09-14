@@ -512,6 +512,19 @@ function createDicomWebTreeApi(dicomWebConfig, UserAuthenticationService) {
       });
       return imageIds;
     },
+    getStudyInstanceUIDs({ params, query }) {
+      const { StudyInstanceUIDs: paramsStudyInstanceUIDs } = params;
+      const queryStudyInstanceUIDs = utils.splitComma(query.getAll('StudyInstanceUIDs'));
+
+      const StudyInstanceUIDs =
+        (queryStudyInstanceUIDs.length && queryStudyInstanceUIDs) || paramsStudyInstanceUIDs;
+      const StudyInstanceUIDsAsArray =
+        StudyInstanceUIDs && Array.isArray(StudyInstanceUIDs)
+          ? StudyInstanceUIDs
+          : [StudyInstanceUIDs];
+
+      return StudyInstanceUIDsAsArray;
+    },
   };
 
   const ret = IWebApiDataSource.create(implementation);

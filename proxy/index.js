@@ -8,6 +8,8 @@ import aws4 from 'aws4';
 import {
     createServer
 } from 'http';
+import fetch from "node-fetch";
+import AWS from 'aws-sdk';
 
 const streamPipeline = promisify(pipeline);
 const awsHost = process.env.AWS_HOST || 'runtime-medical-imaging.us-east-1.amazonaws.com';
@@ -19,13 +21,29 @@ const headers = {
     'Access-Control-Max-Age': 2592000, // 30 days
     'Access-Control-Allow-Headers': '*'
 };
-const awsCredentials = {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-};
+var awsCredentials = {};
+if (!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY)) {
+    console.log('No AWS credentials found, assuming IAM role');
+    const crteds = AWS.config.getCredentials(function(err) {
+        if (err) console.log(err.stack);
+        // credentials not loaded
+        else {
+
+            awsCredentials = AWS.config.credentials;
+        }
+    }
+    );
+}
+else{
+    awsCredentials = {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    };
+}
+
 
 const proxy = createServer(async (req, res) => {
-    console.log('Proxying request to:',req.url);
+    //console.log('Proxying request to:',req.url);
     if (req.method === 'OPTIONS') {
         res.writeHead(204, headers);
         return res.end();
@@ -43,6 +61,17 @@ const proxy = createServer(async (req, res) => {
                 method: req.method,
                 body: body || null,
             };
+            if  (awsCredentials.needsRefresh() ==  true)
+            {
+                AWS.config.credentials.refresh(err => {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        awsCredentials = AWS.config.credentials;
+                        console.log('TOKEN SUCCESSFULLY UPDATED');
+                    }
+                });
+            }
             aws4.sign(newReq, awsCredentials);
             const proxyRes = await fetch(uri, newReq);
             res.writeHead(proxyRes.status, { ...headers,
