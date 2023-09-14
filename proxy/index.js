@@ -61,6 +61,16 @@ const proxy = createServer(async (req, res) => {
                 method: req.method,
                 body: body || null,
             };
+            if  (awsCredentials.needsRefresh() ==  true)
+            {
+                AWS.config.credentials.refresh(err => {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        console.log('TOKEN SUCCESSFULLY UPDATED');
+                    }
+                });
+            }
             aws4.sign(newReq, awsCredentials);
             const proxyRes = await fetch(uri, newReq);
             res.writeHead(proxyRes.status, { ...headers,
